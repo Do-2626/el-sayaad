@@ -5,14 +5,13 @@ import { NextRequest, NextResponse } from "next/server";
 // DELETE /api/products/[id]
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } } // ✅ تم التعديل
 ) {
   await connectDB();
 
   try {
     const { id } = params;
 
-    // Find the product by ID and delete it
     const deletedProduct = await Product.findByIdAndDelete(id);
 
     if (!deletedProduct) {
@@ -32,7 +31,7 @@ export async function DELETE(
 // PUT /api/products/[id]
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } } // ✅ تم التعديل
 ) {
   await connectDB();
 
@@ -40,9 +39,8 @@ export async function PUT(
     const { id } = params;
     const body = await request.json();
 
-    // Find the product by ID and update it
     const updatedProduct = await Product.findByIdAndUpdate(id, body, {
-      new: true, // Return the updated product
+      new: true,
     });
 
     if (!updatedProduct) {
@@ -62,14 +60,13 @@ export async function PUT(
 // GET /api/products/[id]
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } } // ✅ تم التعديل
 ) {
   await connectDB();
 
   try {
     const { id } = params;
 
-    // Find the product by ID
     const product = await Product.findById(id);
 
     if (!product) {

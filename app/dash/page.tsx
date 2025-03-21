@@ -524,7 +524,7 @@ function Dash() {
                   {product.name}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {product.price} ر.س
+                  {product.price} ج.م
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <div className="flex justify-end">
