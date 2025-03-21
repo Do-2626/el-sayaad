@@ -4,8 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 // DELETE /api/products/[id]
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } } // ✅ تم التعديل
+  // request: Request,
+  request: NextRequest,
+  { params }: { params: { id: string } } 
 ) {
   await connectDB();
 
@@ -30,7 +31,8 @@ export async function DELETE(
 
 // PUT /api/products/[id]
 export async function PUT(
-  request: Request,
+  request: NextRequest,
+  // request: Request,
   { params }: { params: { id: string } }
 ) {
   await connectDB();
