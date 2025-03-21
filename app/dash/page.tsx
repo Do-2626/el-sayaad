@@ -1,8 +1,11 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import InputField from "@/components/ui/input-field";
+import SelectField from "@/components/ui/select-field";
 
+// واجهات البيانات
 interface Product {
-  _id: string;
+  id: string;
   name: string;
   price: number;
   rating: number;
@@ -17,29 +20,89 @@ interface Product {
   guarantee: string;
 }
 
+interface CheckoutFormData {
+  productId: string;
+  quantity: number;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+}
+
+interface Order {
+  id: string; // معرف الطلب (يُنشَأ تلقائيًا من قاعدة البيانات)
+  productId: string; // معرف المنتج المرتبط بالطلب
+  productName: string; // اسم المنتج (لتسهيل العرض دون الحاجة للربط مع بيانات المنتج)
+  quantity: number; // كمية المنتج المطلوبة
+  status: string; // حالة الطلب (مثل: "مكتمل"، "قيد التجهيز")
+  createdAt: string; // تاريخ الإنشاء بتنسيق ISO (مثال: "2025-03-21T07:46:57.423Z")
+  customerName: string; // اسم العميل
+  customerEmail: string; // بريد العميل الإلكتروني
+  customerPhone: string; // رقم هاتف العميل
+  customerAddress: string; // عنوان العميل (إذا كان متوفرًا في بيانات الطلب)
+}
+
+
+
 function Dash() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [formData, setFormData] = useState<Partial<Product>>({
+  const [confirmedOrders, setConfirmedOrders] = useState<Order[]>([]);
+  const [formData, setFormData] = useState<Omit<Product, "id" | "lastUpdate">>({
     name: "",
     price: 0,
     rating: 0,
     description: "",
     features: [],
     image: "",
-    lastUpdate: new Date().toISOString(),
     fileSize: "",
     requirements: "",
     license: "",
     purchases: 0,
     guarantee: "",
   });
+  const [checkoutFormData, setCheckoutFormData] = useState<CheckoutFormData>({
+    productId: "",
+    quantity: 1,
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showCheckoutForm, setShowCheckoutForm] = useState(false);
+
+ 
 
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  const fetchConfirmedOrders = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/checkout");
+      if (!response.ok) throw new Error("فشل في جلب الطلبات المؤكدة");
+      const data = await response.json();
+      console.log(
+        data,
+        "data"
+      )
+      setConfirmedOrders(data);
+      // confirmedOrders
+      console.log(
+        confirmedOrders,
+        "confirmedOrders"
+      )
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -58,11 +121,12 @@ function Dash() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+
     setLoading(true);
     setError("");
-
     try {
-      if (!formData.name || !formData.price) {
+      if (!formData.name || formData.price <= 0) {
         throw new Error("الاسم والسعر حقول مطلوبة");
       }
 
@@ -77,23 +141,10 @@ function Dash() {
         throw new Error(errorData.error || "فشل في إضافة المنتج");
       }
 
-      // إعادة تعيين النموذج وجلب البيانات المحدثة
-      setFormData({
-        name: "",
-        price: 0,
-        rating: 0,
-        description: "",
-        features: [],
-        image: "",
-        lastUpdate: new Date().toISOString(),
-        fileSize: "",
-        requirements: "",
-        license: "",
-        purchases: 0,
-        guarantee: "",
-      });
+      setSuccessMessage("تمت إضافة المنتج بنجاح!");
+      resetForm();
       await fetchProducts();
-      setShowForm(false); // إخفاء النموذج بعد الإضافة
+      setShowForm(false);
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -101,200 +152,348 @@ function Dash() {
     }
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleCheckoutSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading) return;
+
+    setLoading(true);
+    setError("");
+    try {
+      if (!checkoutFormData.productId || checkoutFormData.quantity <= 0) {
+        throw new Error("يجب تحديد المنتج والكمية");
+      }
+
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(checkoutFormData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "فشل في إتمام الشراء");
+      }
+
+      setSuccessMessage("تمت عملية الشراء بنجاح!");
+      resetCheckoutForm();
+      await fetchConfirmedOrders();
+      setShowCheckoutForm(false);
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleFeaturesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const features = e.target.value.split(",").map((f) => f.trim());
-    setFormData((prev) => ({ ...prev, features }));
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      price: 0,
+      rating: 0,
+      description: "",
+      features: [],
+      image: "",
+      fileSize: "",
+      requirements: "",
+      license: "",
+      purchases: 0,
+      guarantee: "",
+    });
+  };
+
+  const resetCheckoutForm = () => {
+    setCheckoutFormData({
+      productId: "",
+      quantity: 1,
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+    });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("هل أنت متأكد من حذف هذا المنتج؟")) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("فشل في حذف المنتج");
+
+      setProducts(products.filter((p) => p.id !== id));
+      setSuccessMessage("تم الحذف بنجاح");
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">لوحة التحكم بالمنتجات</h1>
-
+      {/* عرض الرسائل */}
       {error && (
-        <div className="text-red-500 mb-4 p-3 bg-red-100 rounded">{error}</div>
+        <div className="bg-red-100 text-red-600 p-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+      {successMessage && (
+        <div className="bg-green-100 text-green-600 p-3 rounded mb-4">
+          {successMessage}
+        </div>
       )}
 
-      <button
-        onClick={() => setShowForm(!showForm)}
-        className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md mb-4 transition-colors"
-      >
-        {showForm ? "إخفاء إضافة منتج" : "إظهار إضافة منتج"}
-      </button>
+      {/* أزرار التحكم */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors"
+          disabled={loading}
+        >
+          {showForm ? "إخفاء النموذج" : "إضافة منتج جديد"}
+        </button>
+        <button
+          onClick={fetchConfirmedOrders}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors"
+          disabled={loading}
+        >
+          تحديث الطلبات
+        </button>
+        <button
+          onClick={() => setShowCheckoutForm(!showCheckoutForm)}
+          className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded transition-colors"
+          disabled={loading}
+        >
+          {showCheckoutForm ? "إلغاء الشراء" : "شراء منتج"}
+        </button>
+      </div>
 
+      {/* نموذج إضافة المنتج */}
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="mb-8 bg-white p-6 rounded-lg shadow-md"
+          className="bg-white p-6 rounded-lg shadow-md mb-8"
         >
+          <h3 className="text-lg font-bold mb-4">إضافة منتج جديد</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* الحقول الأساسية */}
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                الاسم *:
-                <input
-                  type="text"
-                  name="name"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </label>
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                السعر *:
-                <input
-                  type="number"
-                  name="price"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                  value={formData.price}
-                  onChange={handleInputChange}
-                  required
-                />
-              </label>
-            </div>
-            {/* الحقول الإضافية */}
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                التقييم:
-                <input
-                  type="number"
-                  name="rating"
-                  min="0"
-                  max="5"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                  value={formData.rating}
-                  onChange={handleInputChange}
-                />
-              </label>
-            </div>
-            <div className="mb-4">
+            <InputField
+              label="الاسم"
+              name="name"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              required
+            />
+            <InputField
+              label="السعر"
+              type="number"
+              name="price"
+              value={formData.price}
+              onChange={(e) =>
+                setFormData({ ...formData, price: +e.target.value })
+              }
+              required
+              min={1}
+            />
+            <InputField
+              label="التقييم"
+              type="number"
+              name="rating"
+              value={formData.rating}
+              onChange={(e) =>
+                setFormData({ ...formData, rating: +e.target.value })
+              }
+              min={0}
+              max={5}
+              step={0.5}
+            />
+            <InputField
+              label="رابط الصورة"
+              name="image"
+              value={formData.image}
+              onChange={(e) =>
+                setFormData({ ...formData, image: e.target.value })
+              }
+            />
+            <InputField
+              label="حجم الملف"
+              name="fileSize"
+              value={formData.fileSize}
+              onChange={(e) =>
+                setFormData({ ...formData, fileSize: e.target.value })
+              }
+            />
+            <InputField
+              label="متطلبات النظام"
+              name="requirements"
+              value={formData.requirements}
+              onChange={(e) =>
+                setFormData({ ...formData, requirements: e.target.value })
+              }
+            />
+            <InputField
+              label="نوع الرخصة"
+              name="license"
+              value={formData.license}
+              onChange={(e) =>
+                setFormData({ ...formData, license: e.target.value })
+              }
+            />
+            <InputField
+              label="فترة الضمان"
+              name="guarantee"
+              value={formData.guarantee}
+              onChange={(e) =>
+                setFormData({ ...formData, guarantee: e.target.value })
+              }
+            />
+            <div className="col-span-2">
               <label className="block text-gray-700 text-sm font-bold mb-2">
                 المميزات (مفصولة بفواصل):
                 <input
                   type="text"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                  value={formData.features?.join(", ")}
-                  onChange={handleFeaturesChange}
+                  value={formData.features.join(", ")}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      features: e.target.value
+                        .split(",")
+                        .map((f) => f.trim())
+                        .filter((f) => f.length > 0),
+                    })
+                  }
                 />
               </label>
             </div>
-            {/* المزيد من الحقول */}
-            <div className="mb-4 col-span-2">
+            <div className="col-span-2">
               <label className="block text-gray-700 text-sm font-bold mb-2">
                 الوصف:
                 <textarea
                   name="description"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border h-24"
                   value={formData.description}
-                  onChange={handleInputChange}
-                />
-              </label>
-            </div>
-            {/* أضف باقي الحقول بنفس النمط */}
-            {/* حقل الصورة */}
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                رابط الصورة:
-                <input
-                  type="text"
-                  name="image"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                  value={formData.image}
-                  onChange={handleInputChange}
-                />
-              </label>
-            </div>
-            {/* حجم الملف */}
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                حجم الملف:
-                <input
-                  type="text"
-                  name="fileSize"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                  value={formData.fileSize}
-                  onChange={handleInputChange}
-                />
-              </label>
-            </div>
-            {/* المتطلبات */}
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                متطلبات النظام:
-                <input
-                  type="text"
-                  name="requirements"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                  value={formData.requirements}
-                  onChange={handleInputChange}
-                />
-              </label>
-            </div>
-            {/* الرخصة */}
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                نوع الرخصة:
-                <input
-                  type="text"
-                  name="license"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                  value={formData.license}
-                  onChange={handleInputChange}
-                />
-              </label>
-            </div>
-            {/* عدد المشتريات */}
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                عدد المشتريات:
-                <input
-                  type="number"
-                  name="purchases"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                  value={formData.purchases}
-                  onChange={handleInputChange}
-                />
-              </label>
-            </div>
-            {/* // فترة الضمان */}
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                فترة الضمان:
-                <input
-                  type="text"
-                  name="guarantee"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-                  value={formData.guarantee}
-                  onChange={handleInputChange}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                 />
               </label>
             </div>
           </div>
-
           <button
             type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-md transition-colors disabled:opacity-50"
+            className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded transition-colors disabled:opacity-50"
             disabled={loading}
           >
-            {loading ? "جاري الإضافة..." : "إضافة منتج"}
+            {loading ? "جاري الحفظ..." : "إضافة المنتج"}
           </button>
         </form>
       )}
 
-      {loading && (
-        <div className="text-gray-500 text-center py-4">جاري التحميل...</div>
+      {/* نموذج الشراء */}
+      {showCheckoutForm && (
+        <form
+          onSubmit={handleCheckoutSubmit}
+          className="bg-white p-6 rounded-lg shadow-md mb-8"
+        >
+          <h3 className="text-lg font-bold mb-4">شراء منتج</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SelectField
+              label="اختر المنتج"
+              name="productId"
+              value={checkoutFormData.productId}
+              onChange={(e) =>
+                setCheckoutFormData({
+                  ...checkoutFormData,
+                  productId: e.target.value,
+                })
+              }
+              options={products.map((p) => (
+                {
+                  value: p.id,
+                  label: p.name,
+                }
+              ))}
+              required
+            />
+            <InputField
+              label="الكمية"
+              type="number"
+              name="quantity"
+              value={checkoutFormData.quantity}
+              onChange={(e) =>
+                setCheckoutFormData({
+                  ...checkoutFormData,
+                  quantity: +e.target.value,
+                })
+              }
+              required
+              min={1}
+            />
+            <InputField
+              label="الاسم"
+              name="name"
+              value={checkoutFormData.name}
+              onChange={(e) =>
+                setCheckoutFormData({
+                  ...checkoutFormData,
+                  name: e.target.value,
+                })
+              }
+              required
+            />
+            <InputField
+              label="البريد الإلكتروني"
+              type="email"
+              name="email"
+              value={checkoutFormData.email}
+              onChange={(e) =>
+                setCheckoutFormData({
+                  ...checkoutFormData,
+                  email: e.target.value,
+                })
+              }
+              required
+            />
+            <InputField
+              label="رقم الهاتف"
+              type="tel"
+              name="phone"
+              value={checkoutFormData.phone}
+              onChange={(e) =>
+                setCheckoutFormData({
+                  ...checkoutFormData,
+                  phone: e.target.value,
+                })
+              }
+              required
+            />
+            <InputField
+              label="العنوان"
+              name="address"
+              value={checkoutFormData.address}
+              onChange={(e) =>
+                setCheckoutFormData({
+                  ...checkoutFormData,
+                  address: e.target.value,
+                })
+              }
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="mt-4 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded transition-colors disabled:opacity-50"
+            disabled={loading}
+          >
+            {loading ? "جاري التأكيد..." : "تأكيد الشراء"}
+          </button>
+        </form>
       )}
 
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
+      {/* جدول المنتجات */}
+      <div className="bg-white rounded-lg shadow overflow-x-auto mb-8">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -320,7 +519,7 @@ function Dash() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {products.map((product) => (
-              <tr key={product._id}>
+              <tr key={product.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {product.name}
                 </td>
@@ -328,7 +527,17 @@ function Dash() {
                   {product.price} ر.س
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {"★".repeat(product.rating)}
+                  <div className="flex justify-end">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <span
+                        key={i}
+                        className={`text-xl ${i < product.rating ? "text-yellow-500" : "text-gray-300"
+                          }`}
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {product.purchases}
@@ -337,18 +546,69 @@ function Dash() {
                   {new Date(product.lastUpdate).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <a
-                    href={`/products/${product._id}/edit`}
-                    className="text-blue-500 hover:text-blue-700 mr-2"
+                  <div className="flex justify-end gap-4">
+                    <a
+                      href={`/products/${product.id}/edit`}
+                      className="text-blue-500 hover:text-blue-700"
+                    >
+                      تعديل
+                    </a>
+                    <button
+                      onClick={() => handleDelete(product.id)}
+                      className="text-red-500 hover:text-red-700"
+                      disabled={loading}
+                    >
+                      حذف
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* جدول الطلبات */}
+      <h2 className="text-xl font-bold mb-4">الطلبات المؤكدة</h2>
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                المنتج
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                الكمية
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                الحالة
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                تاريخ الشراء
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {confirmedOrders.map((order) => (
+              <tr key={order.id}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  { order.productName || "منتج غير معروف"}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {order.quantity}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <span
+                    className={`px-2 py-1 rounded-full ${order.status === "completed"
+                      ? "bg-green-200 text-green-800"
+                      : "bg-yellow-200 text-yellow-800"
+                      }`}
                   >
-                    تعديل
-                  </a>
-                  <button
-                    onClick={() => handleDelete(product._id)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    حذف
-                  </button>
+                    {order.status === "completed" ? "مكتمل" : "قيد التجهيز"}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {new Date(order.createdAt).toLocaleDateString()}
                 </td>
               </tr>
             ))}
@@ -358,19 +618,5 @@ function Dash() {
     </div>
   );
 }
-
-const handleDelete = async (id: string) => {
-  if (confirm("هل أنت متأكد أنك تريد حذف هذا المنتج؟")) {
-    try {
-      const response = await fetch(`/api/products/${id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error("فشل في حذف المنتج");
-      window.location.reload(); // تحديث الصفحة
-    } catch (error: any) {
-      alert(error.message);
-    }
-  }
-};
 
 export default Dash;

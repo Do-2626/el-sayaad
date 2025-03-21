@@ -17,14 +17,18 @@ interface IProduct {
   updatedAt: Date;
 }
 
-export type Product = {
+export interface Product extends IProduct {
   id: string;
-  name: string;
-  description: string;
-  price: number;
-  rating: number;
-  image: string;
-};
+}
+
+// export type Product = {
+//   id: string;
+//   name: string;
+//   description: string;
+//   price: number;
+//   rating: number;
+//   image: string;
+// };
 
 const productSchema = new Schema<IProduct>({
   name: { type: String, required: true },
