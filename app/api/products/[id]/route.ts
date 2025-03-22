@@ -11,7 +11,7 @@ export async function DELETE(
   await connectDB();
 
   try {
-    const { id } = params;
+const { id } = await params;
 
     const deletedProduct = await Product.findByIdAndDelete(id);
 
@@ -38,7 +38,7 @@ export async function PUT(
   await connectDB();
 
   try {
-    const { id } = params;
+const { id } = await params;
     const body = await request.json();
 
     const updatedProduct = await Product.findByIdAndUpdate(id, body, {
@@ -60,27 +60,27 @@ export async function PUT(
 }
 
 // GET /api/products/[id]
-// export async function GET(
-//   request: Request,
-//   { params }: { params: { id: string } } // ✅ تم التعديل
-// ) {
-//   await connectDB();
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } } 
+) {
+  await connectDB();
 
-//   try {
-//     const { id } = params;
+  try {
+const { id } = await params;
 
-//     const product = await Product.findById(id);
+    const product = await Product.findById(id);
 
-//     if (!product) {
-//       return NextResponse.json({ error: "Product not found" }, { status: 404 });
-//     }
+    if (!product) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
 
-//     return NextResponse.json(product);
-//   } catch (error) {
-//     console.error("Error getting product:", error);
-//     return NextResponse.json(
-//       { error: "Failed to get product" },
-//       { status: 500 }
-//     );
-//   }
-// }
+    return NextResponse.json(product);
+  } catch (error) {
+    console.error("Error getting product:", error);
+    return NextResponse.json(
+      { error: "Failed to get product" },
+      { status: 500 }
+    );
+  }
+}

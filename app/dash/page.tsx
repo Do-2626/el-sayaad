@@ -2,10 +2,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import InputField from "@/components/ui/input-field";
 import SelectField from "@/components/ui/select-field";
+import Link from "next/link";
 
 // واجهات البيانات
 interface Product {
-  id: string;
+  _id: string;
   name: string;
   price: number;
   rating: number;
@@ -30,7 +31,7 @@ interface CheckoutFormData {
 }
 
 interface Order {
-  id: string; // معرف الطلب (يُنشَأ تلقائيًا من قاعدة البيانات)
+  _id: string; // معرف الطلب (يُنشَأ تلقائيًا من قاعدة البيانات)
   productId: string; // معرف المنتج المرتبط بالطلب
   productName: string; // اسم المنتج (لتسهيل العرض دون الحاجة للربط مع بيانات المنتج)
   quantity: number; // كمية المنتج المطلوبة
@@ -47,7 +48,9 @@ interface Order {
 function Dash() {
   const [products, setProducts] = useState<Product[]>([]);
   const [confirmedOrders, setConfirmedOrders] = useState<Order[]>([]);
-  const [formData, setFormData] = useState<Omit<Product, "id" | "lastUpdate">>({
+  // const [formData, setFormData] = useState<Omit<Product, "id" | "lastUpdate">>({
+  const [formData, setFormData] = useState<Omit<Product, "_id" | "lastUpdate">>({
+
     name: "",
     price: 0,
     rating: 0,
@@ -74,7 +77,7 @@ function Dash() {
   const [showForm, setShowForm] = useState(false);
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
 
- 
+
 
   useEffect(() => {
     fetchProducts();
@@ -86,17 +89,8 @@ function Dash() {
     try {
       const response = await fetch("/api/checkout");
       if (!response.ok) throw new Error("فشل في جلب الطلبات المؤكدة");
-      const data = await response.json();
-      console.log(
-        data,
-        "data"
-      )
-      setConfirmedOrders(data);
-      // confirmedOrders
-      console.log(
-        confirmedOrders,
-        "confirmedOrders"
-      )
+      const data = await response.json(); 
+      setConfirmedOrders(data); 
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -110,7 +104,7 @@ function Dash() {
     try {
       const response = await fetch("/api/products");
       if (!response.ok) throw new Error("فشل في جلب البيانات");
-      const data = await response.json();
+      const data = await response.json(); 
       setProducts(data);
     } catch (error: any) {
       setError(error.message);
@@ -220,7 +214,7 @@ function Dash() {
       const response = await fetch(`/api/products/${id}`, { method: "DELETE" });
       if (!response.ok) throw new Error("فشل في حذف المنتج");
 
-      setProducts(products.filter((p) => p.id !== id));
+      setProducts(products.filter((p) => p._id !== id));
       setSuccessMessage("تم الحذف بنجاح");
     } catch (error: any) {
       setError(error.message);
@@ -411,7 +405,7 @@ function Dash() {
               }
               options={products.map((p) => (
                 {
-                  value: p.id,
+                  value: p._id,
                   label: p.name,
                 }
               ))}
@@ -519,7 +513,7 @@ function Dash() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {products.map((product) => (
-              <tr key={product.id}>
+              <tr key={product._id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {product.name}
                 </td>
@@ -547,14 +541,20 @@ function Dash() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <div className="flex justify-end gap-4">
-                    <a
+                    {/* <a
                       href={`/products/${product.id}/edit`}
                       className="text-blue-500 hover:text-blue-700"
                     >
                       تعديل
-                    </a>
+                    </a> */}
+                    <Link
+                      href={`/products/${product._id}/edit`}
+                      className="text-green-500 hover:text-green-700"
+                    >
+                      تعديل
+                    </Link>
                     <button
-                      onClick={() => handleDelete(product.id)}
+                      onClick={() => handleDelete(product._id)}
                       className="text-red-500 hover:text-red-700"
                       disabled={loading}
                     >
@@ -590,9 +590,9 @@ function Dash() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {confirmedOrders.map((order) => (
-              <tr key={order.id}>
+              <tr key={order._id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  { order.productName || "منتج غير معروف"}
+                  {order.productName || "منتج غير معروف"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {order.quantity}

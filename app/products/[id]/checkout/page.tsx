@@ -122,7 +122,7 @@ useEffect(() => {
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border bg-gray-100"
             value={formData.productId}
             onChange={handleInputChange}
-            readOnly // منع التعديل
+            readOnly  
             required
           />
           </label>
