@@ -4,15 +4,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 // DELETE /api/products/[id]
 export async function DELETE(
-  // request: Request,
   request: NextRequest,
-  { params }: { params: { id: string } } 
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   await connectDB();
 
   try {
-const { id } = await params;
-
     const deletedProduct = await Product.findByIdAndDelete(id);
 
     if (!deletedProduct) {
@@ -32,13 +30,12 @@ const { id } = await params;
 // PUT /api/products/[id]
 export async function PUT(
   request: NextRequest,
-  // request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   await connectDB();
 
   try {
-const { id } = await params;
     const body = await request.json();
 
     const updatedProduct = await Product.findByIdAndUpdate(id, body, {
@@ -62,13 +59,12 @@ const { id } = await params;
 // GET /api/products/[id]
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } } 
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   await connectDB();
 
   try {
-const { id } = await params;
-
     const product = await Product.findById(id);
 
     if (!product) {
