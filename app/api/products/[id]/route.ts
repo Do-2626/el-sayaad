@@ -61,7 +61,7 @@ const { id } = await params;
 
 // GET /api/products/[id]
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } } 
 ) {
   await connectDB();
