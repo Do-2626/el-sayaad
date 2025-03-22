@@ -310,30 +310,30 @@ function Dash() {
                 setFormData({ ...formData, image: e.target.value })
               }
             />
-            <InputField
+            {/* <InputField
               label="حجم الملف"
               name="fileSize"
               value={formData.fileSize}
               onChange={(e) =>
                 setFormData({ ...formData, fileSize: e.target.value })
               }
-            />
-            <InputField
+            /> */}
+            {/* <InputField
               label="متطلبات النظام"
               name="requirements"
               value={formData.requirements}
               onChange={(e) =>
                 setFormData({ ...formData, requirements: e.target.value })
               }
-            />
-            <InputField
+            /> */}
+            {/* <InputField
               label="نوع الرخصة"
               name="license"
               value={formData.license}
               onChange={(e) =>
                 setFormData({ ...formData, license: e.target.value })
               }
-            />
+            /> */}
             <InputField
               label="فترة الضمان"
               name="guarantee"
@@ -342,7 +342,7 @@ function Dash() {
                 setFormData({ ...formData, guarantee: e.target.value })
               }
             />
-            <div className="col-span-2">
+            {/* <div className="col-span-2">
               <label className="block text-gray-700 text-sm font-bold mb-2">
                 المميزات (مفصولة بفواصل):
                 <input
@@ -360,7 +360,7 @@ function Dash() {
                   }
                 />
               </label>
-            </div>
+            </div> */}
             <div className="col-span-2">
               <label className="block text-gray-700 text-sm font-bold mb-2">
                 الوصف:
