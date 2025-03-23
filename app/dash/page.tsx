@@ -269,7 +269,7 @@ function Dash() {
           className="bg-white p-6 rounded-lg shadow-md mb-8"
         >
           <h3 className="text-lg font-bold mb-4">إضافة منتج جديد</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputField
               label="الاسم"
               name="name"
